@@ -3,105 +3,613 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>牧童笛小鳥大挑戰！</title>
+    <title>牧童笛音樂小鳥 Recorder Bird</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #87CEEB; /* 天藍色背景 */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+            font-family: 'Inter', "Microsoft JhengHei", sans-serif;
             overflow: hidden;
+            background-color: #80DEEA;
+            margin: 0;
+            user-select: none;
         }
-
-        #start-screen {
-            text-align: center;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 40px;
-            border-radius: 30px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-            border: 5px solid #FFD700;
-            max-width: 80%;
+        #game-canvas { display: block; background-color: #80DEEA; }
+        .modal { background: #FFFFFF; border: 8px solid #333333; border-radius: 40px; box-shadow: 12px 12px 0px rgba(0,0,0,0.2); }
+        .btn { transition: transform 0.1s, box-shadow 0.1s; cursor: pointer; border: 4px solid #333; box-shadow: 4px 6px 0px #333; }
+        .btn:hover { transform: translate(-2px, -2px); box-shadow: 6px 8px 0px #333; }
+        .btn:active { transform: translate(4px, 6px); box-shadow: 0px 0px 0px #333; }
+        .diff-btn-active { background-color: #FFEB3B !important; color: #333 !important; border: 4px solid #333; }
+        .hud-panel { background: #FFFFFF; border: 4px solid #333; box-shadow: 4px 6px 0px rgba(0,0,0,0.15); }
+        
+        /* 節拍器與靈敏度控制項樣式 */
+        .volume-slider {
+            -webkit-appearance: none;
+            height: 10px;
+            background: #ddd;
+            border-radius: 5px;
+            outline: none;
+            border: 2px solid #333;
         }
-
-        h1 {
-            color: #FF4500;
-            font-size: 3rem;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px #fff;
-        }
-
-        p {
-            font-size: 1.5rem;
-            color: #333;
-            font-weight: bold;
-        }
-
-        .icon-container {
-            font-size: 80px;
-            margin: 20px 0;
-            display: block;
-            animation: float 2s ease-in-out infinite;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-20px); }
-        }
-
-        #start-button {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            padding: 20px 50px;
-            font-size: 2rem;
-            border-radius: 50px;
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #FF4081;
             cursor: pointer;
-            transition: transform 0.2s, background-color 0.2s;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            border-radius: 50%;
+            border: 2px solid #333;
+        }
+        .sens-slider::-webkit-slider-thumb {
+            background: #2196F3;
         }
 
-        #start-button:hover {
-            background-color: #45a049;
-            transform: scale(1.1);
+        @keyframes count-zoom {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 0; }
         }
-
-        .instructions {
-            margin-top: 20px;
-            background: #FFFACD;
-            padding: 15px;
-            border-radius: 15px;
-            font-size: 1.2rem;
-            color: #555;
-        }
+        .animate-count { animation: count-zoom 0.8s ease-out forwards; }
+        .combo-text { text-shadow: 3px 3px 0px rgba(0,0,0,0.2); }
     </style>
 </head>
-<body>
+<body class="flex flex-col items-center justify-center min-h-screen">
 
-    <div id="start-screen">
-        <span class="icon-container">🎵🐦</span>
-        <h1>牧童笛小鳥大挑戰</h1>
-        <p>準備好你的牧童笛了嗎？</p>
+    <!-- 開始畫面 -->
+    <div id="start-screen" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-cyan-100 p-8 overflow-y-auto">
+        <div class="mb-6 bg-white p-6 rounded-[40px] border-4 border-gray-800 shadow-[8px_8px_0px_rgba(0,0,0,0.2)]">
+             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" class="w-24 h-24">
+                <circle cx="50" cy="55" r="45" fill="#E91E63"/> 
+                <circle cx="50" cy="45" r="20" fill="#FFF"/>    
+                <circle cx="50" cy="45" r="8" fill="#333"/>     
+                <path d="M35 75 Q50 90 65 75" stroke="#333" stroke-width="5" stroke-linecap="round" fill="none"/> 
+             </svg>
+        </div>
+        <h1 class="text-6xl font-extrabold text-gray-800 mb-4 tracking-tighter">牧童笛音樂小鳥</h1>
         
-        <div class="instructions">
-            💡 玩法：吹出聲音，讓小鳥飛起來！<br>
-            不要碰到管子喔！
+        <!-- 首頁音量與靈敏度設定 -->
+        <div class="flex flex-col md:flex-row gap-4 mb-6 w-full max-w-2xl justify-center">
+            <!-- 節拍器音量 -->
+            <div class="hud-panel flex justify-between items-center gap-3 px-5 py-3 rounded-full w-full">
+                <span class="text-sm font-bold text-gray-700 whitespace-nowrap">🥁 節拍器:</span>
+                <input type="range" min="0" max="1" step="0.1" value="0.5" class="volume-slider w-full" id="start-vol-slider" oninput="updateMetronomeVolume(this.value)">
+                <span id="vol-display-start" class="font-black text-pink-600 w-10 text-right">50%</span>
+            </div>
+            <!-- 麥克風靈敏度 -->
+            <div class="hud-panel flex justify-between items-center gap-3 px-5 py-3 rounded-full w-full relative group">
+                <span class="text-sm font-bold text-gray-700 whitespace-nowrap">🎙️ 靈敏度:</span>
+                <input type="range" min="1" max="100" step="1" value="50" class="volume-slider sens-slider w-full" id="start-sens-slider" oninput="updateSensitivity(this.value)">
+                <span id="sens-display-start" class="font-black text-blue-600 w-10 text-right">50%</span>
+                <!-- 靈敏度提示說明 -->
+                <div class="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs text-gray-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                    環境吵雜請調低，收音微弱請調高
+                </div>
+            </div>
         </div>
 
-        <br>
-        <button id="start-button" onclick="startGame()">開始遊戲！</button>
+        <div class="mb-8 flex flex-col items-center hud-panel p-6 rounded-[30px]">
+            <span class="text-xl text-gray-700 mb-4 font-bold">選擇難度：</span>
+            <div class="flex gap-6">
+                <button onclick="setDifficulty(0.75)" id="diff-beginner" class="diff-btn btn bg-green-400 text-white px-8 py-3 rounded-[20px] text-xl font-black">初學者 (慢)</button>
+                <button onclick="setDifficulty(1.0)" id="diff-pro" class="diff-btn btn bg-purple-500 text-white px-8 py-3 rounded-[20px] text-xl font-black diff-btn-active">演奏家 (原速)</button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-4xl">
+            <button onclick="handleStart('mary')" class="btn bg-pink-500 text-white p-6 rounded-[24px] text-2xl font-black text-left flex items-center justify-between">瑪莉有隻小綿羊 <span class="text-sm opacity-70">4/4 拍</span></button>
+            <button onclick="handleStart('ode')" class="btn bg-yellow-400 text-gray-800 p-6 rounded-[24px] text-2xl font-black text-left flex items-center justify-between">歡樂頌 <span class="text-sm opacity-70">4/4 拍 (完整)</span></button>
+            <button onclick="handleStart('edelweiss')" class="btn bg-green-500 text-white p-6 rounded-[24px] text-2xl font-black text-left flex items-center justify-between">雪絨花 <span class="text-sm opacity-70">3/4 拍 (C大調)</span></button>
+            <button onclick="handleStart('amazing')" class="btn bg-blue-500 text-white p-6 rounded-[24px] text-2xl font-black text-left flex items-center justify-between">奇異恩典 <span class="text-sm opacity-70">3/4 拍 (完整)</span></button>
+        </div>
     </div>
 
+    <!-- 預備拍倒數 -->
+    <div id="countdown-overlay" class="hidden fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black/10 pointer-events-none">
+        <div id="countdown-text" class="text-[15rem] font-black text-yellow-400" style="-webkit-text-stroke: 6px #333;"></div>
+        <div id="prep-hint" class="text-4xl font-bold text-white bg-black/40 px-8 py-2 rounded-full opacity-0 transition-opacity duration-300">準備第一個音！</div>
+    </div>
+
+    <!-- 遊戲中 UI -->
+    <div id="game-ui" class="hidden fixed top-0 left-0 w-full p-8 flex justify-between items-start pointer-events-none z-40">
+        <div class="flex flex-col gap-4">
+            <div id="hp-container" class="hud-panel flex gap-2 p-3 rounded-full pointer-events-auto">
+                <span id="hp-hearts" class="text-3xl tracking-widest">❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️</span>
+            </div>
+            <div id="score-container" class="hud-panel px-8 py-3 rounded-full text-2xl flex items-center gap-3 font-black text-gray-800 pointer-events-auto">
+                💎 得分: <span id="score-val" class="inline-block text-pink-600 text-3xl">0</span>
+            </div>
+            
+            <!-- 遊戲中音量與靈敏度控制 -->
+            <div class="flex gap-2">
+                <div class="hud-panel px-4 py-2 rounded-full flex items-center gap-2 pointer-events-auto shadow-md hover:scale-105 transition-transform">
+                    <span class="text-sm font-bold text-gray-600" title="節拍器音量">🥁</span>
+                    <input type="range" min="0" max="1" step="0.1" value="0.5" class="volume-slider w-16" id="game-vol-slider" oninput="updateMetronomeVolume(this.value)">
+                </div>
+                <div class="hud-panel px-4 py-2 rounded-full flex items-center gap-2 pointer-events-auto shadow-md hover:scale-105 transition-transform">
+                    <span class="text-sm font-bold text-gray-600" title="麥克風靈敏度">🎙️</span>
+                    <input type="range" min="1" max="100" step="1" value="50" class="volume-slider sens-slider w-16" id="game-sens-slider" oninput="updateSensitivity(this.value)">
+                </div>
+            </div>
+
+            <div id="combo-container" class="opacity-0 transform transition-all duration-300 scale-50">
+                 <div class="hud-panel bg-pink-500 text-white px-6 py-2 rounded-2xl border-4 border-white inline-block">
+                     <span class="text-xl font-bold uppercase italic">Combo</span><br/>
+                     <span id="combo-val" class="text-5xl font-black combo-text">0</span>
+                 </div>
+            </div>
+        </div>
+        <div class="hud-panel bg-yellow-400 px-10 py-4 rounded-full text-5xl font-black text-gray-800 flex items-center pointer-events-auto">
+            🎵 <span id="target-note" class="ml-3 text-6xl text-pink-600">-</span>
+        </div>
+    </div>
+
+    <!-- 結算畫面 -->
+    <div id="message-overlay" class="hidden fixed inset-0 flex items-center justify-center z-50 bg-black/70">
+        <div class="modal p-12 max-w-xl w-full text-center relative">
+            <div id="reward-icon" class="text-9xl mb-6">🏆</div>
+            <h2 id="modal-title" class="text-6xl text-gray-800 mb-3 font-black">精彩演出！</h2>
+            <div class="bg-gray-100 rounded-[24px] p-8 mb-10 border-4 border-gray-300 text-center">
+                <span class="text-3xl text-gray-700 font-bold">得分紀錄</span><br/>
+                <span id="current-score-display" class="text-8xl font-black text-pink-500">0</span>
+            </div>
+            <button onclick="location.reload()" class="btn bg-cyan-400 text-gray-900 px-16 py-5 rounded-[24px] text-3xl font-black w-full">返回主頁</button>
+        </div>
+    </div>
+
+    <canvas id="game-canvas"></canvas>
+
     <script>
-        function startGame() {
-            // 這裡可以跳轉到遊戲主頁面，例如：
-            // window.location.href = "game.html";
-            alert("遊戲即將開始，請準備好麥克風！");
-            // 或者調用你的 game.js 啟動函式
+        let audioContext, analyser, microphone, currentPitch = 0, isAudioInit = false;
+        let difficulty = 1.0;
+        let metronomeVolume = 0.5; 
+        let micSensitivity = 0.0255; // 麥克風靈敏度閾值預設值
+        
+        const BEAT_PIXELS = 450;  
+        const MONSTER_X = 220;    
+        const GROUND_HEIGHT = 80; 
+
+        const NOTE_FREQUENCIES = {
+            'C4': 261.63, 'D4': 293.66, 'E4': 329.63, 'F4': 349.23, 'G4': 392.00, 'A4': 440.00, 'B4': 493.88,
+            'C5': 523.25, 'D5': 587.33, 'E5': 659.25, 'F5': 698.46, 'F#5': 739.99, 'G5': 783.99, 'A5': 880.00, 
+            'B5': 987.77, 'C6': 1046.50, 'D6': 1174.66, 'E6': 1318.51
+        };
+
+        const SONGS = {
+            mary: { bpm: 65, meter: 4, pickup: 0, notes: [{n:'B5', d:1}, {n:'A5', d:1}, {n:'G5', d:1}, {n:'A5', d:1}, {n:'B5', d:1}, {n:'B5', d:1}, {n:'B5', d:2}, {n:'A5', d:1}, {n:'A5', d:1}, {n:'A5', d:2}, {n:'B5', d:1}, {n:'D6', d:1}, {n:'D6', d:2}, {n:'B5', d:1}, {n:'A5', d:1}, {n:'G5', d:1}, {n:'A5', d:1}, {n:'B5', d:1}, {n:'B5', d:1}, {n:'B5', d:1}, {n:'B5', d:1}, {n:'A5', d:1}, {n:'A5', d:1}, {n:'B5', d:1}, {n:'A5', d:1}, {n:'G5', d:3}] },
+            ode: { bpm: 85, meter: 4, pickup: 0, notes: [
+                    {n:'B5', d:1}, {n:'B5', d:1}, {n:'C6', d:1}, {n:'D6', d:1}, {n:'D6', d:1}, {n:'C6', d:1}, {n:'B5', d:1}, {n:'A5', d:1}, 
+                    {n:'G5', d:1}, {n:'G5', d:1}, {n:'A5', d:1}, {n:'B5', d:1}, {n:'B5', d:1.5}, {n:'A5', d:0.5}, {n:'A5', d:2},
+                    {n:'B5', d:1}, {n:'B5', d:1}, {n:'C6', d:1}, {n:'D6', d:1}, {n:'D6', d:1}, {n:'C6', d:1}, {n:'B5', d:1}, {n:'A5', d:1}, 
+                    {n:'G5', d:1}, {n:'G5', d:1}, {n:'A5', d:1}, {n:'B5', d:1}, {n:'A5', d:1.5}, {n:'G5', d:0.5}, {n:'G5', d:2},
+                    {n:'A5', d:1}, {n:'A5', d:1}, {n:'B5', d:1}, {n:'G5', d:1}, {n:'A5', d:1}, {n:'B5', d:0.5}, {n:'C6', d:0.5}, {n:'B5', d:1}, {n:'G5', d:1},
+                    {n:'A5', d:1}, {n:'B5', d:0.5}, {n:'C6', d:0.5}, {n:'B5', d:1}, {n:'A5', d:1}, {n:'G5', d:1}, {n:'A5', d:1}, {n:'D5', d:2},
+                    {n:'B5', d:1}, {n:'B5', d:1}, {n:'C6', d:1}, {n:'D6', d:1}, {n:'D6', d:1}, {n:'C6', d:1}, {n:'B5', d:1}, {n:'A5', d:1}, 
+                    {n:'G5', d:1}, {n:'G5', d:1}, {n:'A5', d:1}, {n:'B5', d:1}, {n:'A5', d:1.5}, {n:'G5', d:0.5}, {n:'G5', d:2}
+                ] 
+            },
+            edelweiss: { bpm: 84, meter: 3, pickup: 0, notes: [
+                    {n:'E5', d:2}, {n:'G5', d:1}, {n:'D6', d:3}, 
+                    {n:'C6', d:2}, {n:'G5', d:1}, {n:'F5', d:3}, 
+                    {n:'E5', d:2}, {n:'E5', d:1}, {n:'E5', d:1}, {n:'F5', d:1}, {n:'G5', d:1}, {n:'A5', d:3}, {n:'G5', d:3},
+                    {n:'E5', d:2}, {n:'G5', d:1}, {n:'D6', d:3},
+                    {n:'C6', d:2}, {n:'G5', d:1}, {n:'F5', d:3},
+                    {n:'E5', d:2}, {n:'G5', d:1}, {n:'G5', d:1}, {n:'A5', d:1}, {n:'B5', d:1}, {n:'C6', d:3}, {n:'C6', d:3},
+                    {n:'D6', d:1.5}, {n:'G5', d:0.5}, {n:'G5', d:0.5}, {n:'B5', d:1}, {n:'A5', d:1}, {n:'G5', d:1}, {n:'E5', d:2}, {n:'G5', d:1}, {n:'C6', d:3}, 
+                    {n:'A5', d:2}, {n:'C6', d:1}, {n:'D6', d:2}, {n:'C6', d:1}, {n:'B5', d:3}, {n:'G5', d:3},
+                    {n:'E5', d:2}, {n:'G5', d:1}, {n:'D6', d:3},
+                    {n:'C6', d:2}, {n:'G5', d:1}, {n:'F5', d:3},
+                    {n:'E5', d:2}, {n:'G5', d:1}, {n:'G5', d:1}, {n:'A5', d:1}, {n:'B5', d:1}, {n:'C6', d:3}, {n:'C6', d:3}
+                ] 
+            },
+            amazing: { bpm: 62, meter: 3, pickup: 2, notes: [
+                    {n:'D5', d:1}, 
+                    {n:'G5', d:2}, {n:'B5', d:0.5}, {n:'G5', d:0.5}, {n:'B5', d:2}, {n:'A5', d:1}, {n:'G5', d:2}, {n:'E5', d:1}, {n:'D5', d:2},
+                    {n:'D5', d:1}, 
+                    {n:'G5', d:2}, {n:'B5', d:0.5}, {n:'G5', d:0.5}, {n:'B5', d:2}, {n:'A5', d:1}, {n:'D6', d:3}, {n:'D6', d:3}, 
+                    {n:'B5', d:2}, {n:'D6', d:0.5}, {n:'B5', d:0.5}, {n:'D6', d:2}, {n:'B5', d:1}, {n:'G5', d:2}, {n:'D5', d:1}, {n:'E5', d:1.5}, {n:'G5', d:0.5}, {n:'G5', d:0.5}, {n:'E5', d:0.5}, {n:'D5', d:2},
+                    {n:'D5', d:1},
+                    {n:'G5', d:2}, {n:'B5', d:0.5}, {n:'G5', d:0.5}, {n:'B5', d:2}, {n:'A5', d:1}, {n:'G5', d:3}, {n:'G5', d:3}
+                ] 
+            }
+        };
+
+        // 更新靈敏度
+        function updateSensitivity(val) {
+            const percent = val + "%";
+            // 更新首頁顯示
+            const displayStart = document.getElementById('sens-display-start');
+            if (displayStart) displayStart.innerText = percent;
+            
+            // 雙向綁定設定值
+            const startSlider = document.getElementById('start-sens-slider');
+            const gameSlider = document.getElementById('game-sens-slider');
+            if (startSlider && startSlider.value !== val) startSlider.value = val;
+            if (gameSlider && gameSlider.value !== val) gameSlider.value = val;
+            
+            // 換算成 RMS 閾值
+            // val 1 (最不靈敏) -> 0.05
+            // val 100 (最靈敏) -> 0.001
+            micSensitivity = 0.05 - (parseInt(val) / 100) * 0.049;
         }
+
+        // 更新節拍器音量
+        function updateMetronomeVolume(val) {
+            metronomeVolume = parseFloat(val);
+            const percent = Math.round(metronomeVolume * 100) + "%";
+            
+            const displayStart = document.getElementById('vol-display-start');
+            if (displayStart) displayStart.innerText = percent;
+            
+            const startSlider = document.getElementById('start-vol-slider');
+            const gameSlider = document.getElementById('game-vol-slider');
+            if (startSlider && startSlider.value !== val) startSlider.value = val;
+            if (gameSlider && gameSlider.value !== val) gameSlider.value = val;
+        }
+
+        function setDifficulty(d) {
+            difficulty = d;
+            document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('diff-btn-active'));
+            if(d < 1.0) document.getElementById('diff-beginner').classList.add('diff-btn-active');
+            else document.getElementById('diff-pro').classList.add('diff-btn-active');
+        }
+
+        async function initAudio() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                microphone = audioContext.createMediaStreamSource(stream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 2048;
+                microphone.connect(analyser);
+                isAudioInit = true;
+                detectPitch();
+            } catch (err) { alert("請允許麥克風訪問！"); }
+        }
+
+        function playTickAtTime(time, isStrong = false) {
+            if (!audioContext || metronomeVolume <= 0) return;
+
+            if (isStrong) {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(150, time);
+                osc.frequency.exponentialRampToValueAtTime(50, time + 0.1);
+                gain.gain.setValueAtTime(0, time);
+                gain.gain.linearRampToValueAtTime(metronomeVolume * 0.8, time + 0.005);
+                gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.5);
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                osc.start(time);
+                osc.stop(time + 0.6);
+            } else {
+                const bufferSize = audioContext.sampleRate * 0.05; 
+                const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+                const noise = audioContext.createBufferSource();
+                noise.buffer = buffer;
+                const filter = audioContext.createBiquadFilter();
+                filter.type = 'highpass';
+                filter.frequency.setValueAtTime(2000, time);
+                const gain = audioContext.createGain();
+                gain.gain.setValueAtTime(0, time);
+                gain.gain.linearRampToValueAtTime(metronomeVolume * 0.4, time + 0.002);
+                gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.05);
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(audioContext.destination);
+                noise.start(time);
+            }
+        }
+
+        function detectPitch() {
+            const buffer = new Float32Array(analyser.fftSize);
+            const update = () => {
+                analyser.getFloatTimeDomainData(buffer);
+                currentPitch = autoCorrelate(buffer, audioContext.sampleRate);
+                requestAnimationFrame(update);
+            };
+            update();
+        }
+
+        function autoCorrelate(buf, sampleRate) {
+            let SIZE = buf.length, rms = 0;
+            for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
+            
+            // 使用動態調整的麥克風靈敏度閾值
+            if (Math.sqrt(rms / SIZE) < micSensitivity) return -1;
+            
+            let r1 = 0, r2 = SIZE - 1, thres = 0.2;
+            for (let i = 0; i < SIZE / 2; i++) { if (Math.abs(buf[i]) < thres) { r1 = i; break; } }
+            for (let i = 1; i < SIZE / 2; i++) { if (Math.abs(buf[SIZE - i]) < thres) { r2 = SIZE - i; break; } }
+            buf = buf.slice(r1, r2); SIZE = buf.length;
+            const c = new Array(SIZE).fill(0);
+            for (let i = 0; i < SIZE; i++) {
+                for (let j = 0; j < SIZE - i; j++) c[i] = c[i] + buf[j] * buf[j + i];
+            }
+            let d = 0; while (c[d] > c[d + 1]) d++;
+            let maxval = -1, maxpos = -1;
+            for (let i = d; i < SIZE; i++) { if (c[i] > maxval) { maxval = c[i]; maxpos = i; } }
+            return sampleRate / maxpos;
+        }
+
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        let gameActive = false, isCountingDown = false, score = 0, combo = 0, currentSongNotes = [], currentSongData = null;
+        
+        let monster = { 
+            x: MONSTER_X, 
+            y: 0, 
+            targetY: 0, 
+            size: 70, 
+            hp: 10, 
+            hurtCooldown: 0, 
+            expression: 'normal', 
+            perfectTimer: 0 
+        };
+        
+        let obstacles = [], clouds = [], mountains = [], effects = [];
+        let songStartTime = 0, countdownStartTime = 0, totalPrepBeats = 0, beatDurationSec = 0, pixelsPerSec = 0, lastScheduledBeat = -999, rainbowHue = 0;
+
+        function resize() { 
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight; 
+            if(!gameActive && !isCountingDown) {
+                monster.y = monster.targetY = canvas.height - GROUND_HEIGHT - monster.size/2;
+            }
+            initBackgroundElements(); 
+        }
+        window.addEventListener('resize', resize); 
+
+        function initBackgroundElements() {
+            clouds = []; mountains = [];
+            for(let i=0; i<6; i++) clouds.push({ x: Math.random()*canvas.width, y: 50 + Math.random()*200, w: 120+Math.random()*100, s: 0.3+Math.random()*0.5 });
+            let mx = 0;
+            while(mx < canvas.width * 2) {
+                const isGreen = Math.random() > 0.4;
+                mountains.push({ x: mx, y: canvas.height - GROUND_HEIGHT, w: 250 + Math.random()*200, h: 200 + Math.random()*300, color: isGreen ? '#4CAF50' : '#8D6E63', highlightColor: isGreen ? '#81C784' : '#BCAAA4' });
+                mx += 200 + Math.random()*150;
+            }
+        }
+
+        async function handleStart(songId) {
+            if (!isAudioInit) await initAudio();
+            document.getElementById('start-screen').classList.add('hidden');
+            currentSongData = SONGS[songId];
+            
+            beatDurationSec = 60 / (currentSongData.bpm * difficulty);
+            pixelsPerSec = BEAT_PIXELS / beatDurationSec;
+            totalPrepBeats = currentSongData.meter + currentSongData.pickup;
+            prepareGameData();
+            
+            const overlay = document.getElementById('countdown-overlay');
+            const text = document.getElementById('countdown-text');
+            const prepHint = document.getElementById('prep-hint');
+            
+            overlay.classList.remove('hidden');
+            countdownStartTime = audioContext.currentTime;
+            isCountingDown = true;
+            lastScheduledBeat = Math.floor(-totalPrepBeats) - 1;
+            
+            requestAnimationFrame(gameLoop);
+            for(let i = 1; i <= totalPrepBeats; i++) {
+                const targetTime = countdownStartTime + (i-1) * beatDurationSec;
+                if (i > totalPrepBeats - 2) prepHint.classList.replace('opacity-0', 'opacity-100');
+                
+                setTimeout(() => {
+                    text.innerText = (i > currentSongData.meter) ? (i - currentSongData.meter) : i;
+                    text.classList.remove('animate-count'); 
+                    void text.offsetWidth; 
+                    text.classList.add('count-zoom'); 
+                    text.classList.add('animate-count');
+                }, (targetTime - audioContext.currentTime) * 1000);
+                
+                await new Promise(r => setTimeout(r, Math.max(0, (targetTime + beatDurationSec - audioContext.currentTime) * 1000)));
+            }
+            isCountingDown = false; 
+            overlay.classList.add('hidden'); 
+            prepHint.classList.replace('opacity-100', 'opacity-0');
+            startGame();
+        }
+
+        function prepareGameData() {
+            currentSongNotes = currentSongData.notes;
+            score = 0; combo = 0; monster.hp = 10; monster.expression = 'normal'; obstacles = []; effects = [];
+            updateComboUI(); resize(); updateHPDisplay();
+            let currentBeatOffset = 0; 
+            for (let item of currentSongNotes) {
+                const freq = NOTE_FREQUENCIES[item.n];
+                const normalized = (freq - 260) / (1300 - 260); 
+                const usableHeight = canvas.height - GROUND_HEIGHT - 300; 
+                const targetY = canvas.height - GROUND_HEIGHT - (normalized * usableHeight + 150);
+                obstacles.push({ targetBeat: currentBeatOffset, y: targetY, note: item.n, width: 100, collected: false, missed: false });
+                currentBeatOffset += item.d;
+            }
+        }
+
+        function startGame() { document.getElementById('game-ui').classList.remove('hidden'); gameActive = true; songStartTime = audioContext.currentTime; }
+        function updateHPDisplay() { document.getElementById('hp-hearts').innerText = "❤️".repeat(monster.hp) + "🖤".repeat(10-monster.hp); }
+        function updateComboUI() {
+            const container = document.getElementById('combo-container');
+            document.getElementById('combo-val').innerText = combo;
+            if (combo > 0) container.classList.replace('opacity-0', 'opacity-100'), container.classList.replace('scale-50', 'scale-100');
+            else container.classList.replace('opacity-100', 'opacity-0'), container.classList.replace('scale-100', 'scale-50');
+        }
+
+        function takeDamage() {
+            if (monster.hurtCooldown > 0) return;
+            monster.hp--; monster.hurtCooldown = 40; monster.expression = 'miss'; combo = 0;
+            updateComboUI(); updateHPDisplay();
+            if (monster.hp <= 0) endGame(false);
+        }
+
+        function spawnGemEffect(x, y, color = '#FFEB3B') {
+            for(let i=0; i<12; i++) effects.push({ x: x, y: y, vx: (Math.random()-0.5)*15, vy: (Math.random()-0.5)*15, life: 30, color: color, size: 6 + Math.random()*8 });
+        }
+
+        function endGame(success) {
+            gameActive = false; isCountingDown = false;
+            document.getElementById('message-overlay').classList.remove('hidden');
+            document.getElementById('current-score-display').innerText = Math.floor(score/10);
+            document.getElementById('modal-title').innerText = success ? "完美的演奏！" : "力竭的小鳥";
+        }
+
+        function drawEyes(size, expression) {
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+            const offset = size/5, ey = -size/8;
+            if (expression === 'perfect') {
+                [-offset, offset].forEach(x => {
+                    ctx.save(); ctx.translate(x, ey); ctx.fillStyle = '#333'; ctx.beginPath();
+                    for(let i=0; i<5; i++) {
+                        ctx.lineTo(Math.cos((18+i*72)/180*Math.PI)*10, -Math.sin((18+i*72)/180*Math.PI)*10);
+                        ctx.lineTo(Math.cos((54+i*72)/180*Math.PI)*5, -Math.sin((54+i*72)/180*Math.PI)*5);
+                    }
+                    ctx.fill(); ctx.restore();
+                });
+            } else if (expression === 'happy') {
+                [-offset, offset].forEach(x => { ctx.beginPath(); ctx.moveTo(x-8, ey+4); ctx.lineTo(x, ey-4); ctx.lineTo(x+8, ey+4); ctx.stroke(); });
+            } else if (expression === 'miss') {
+                [-offset, offset].forEach(x => { ctx.beginPath(); ctx.moveTo(x-6, ey-6); ctx.lineTo(x+6, ey+6); ctx.moveTo(x+6, ey-6); ctx.lineTo(x-6, ey+6); ctx.stroke(); });
+            } else {
+                ctx.fillStyle = '#FFF';
+                [-offset, offset].forEach(x => { ctx.beginPath(); ctx.arc(x, ey, size/6, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(x, ey, size/14, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = '#FFF'; });
+            }
+        }
+
+        function drawMonster(x, y, size, hurt, comboCount, expression) {
+            ctx.save(); ctx.translate(x, y);
+            if (hurt > 0 && Math.floor(hurt/4)%2 === 0) ctx.globalAlpha = 0.3;
+            let bodyColor = '#E91E63'; 
+            if (comboCount >= 8) bodyColor = `hsl(${rainbowHue}, 80%, 60%)`;
+            else if (comboCount >= 6) bodyColor = '#00E676';
+            else if (comboCount >= 4) bodyColor = '#FF9100';
+            else if (comboCount >= 2) bodyColor = '#00B0FF';
+            ctx.fillStyle = bodyColor; ctx.beginPath(); ctx.arc(0, 0, size/2, 0, Math.PI*2); ctx.fill();
+            drawEyes(size, expression);
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0, size/5, size/6, 0.2*Math.PI, 0.8*Math.PI); ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawFlatPillar(x, width, topH, botY) {
+            ctx.save();
+            const dirtColor = '#795548', grassColor = '#8BC34A', grassHighlight = '#AED581';
+            ctx.fillStyle = dirtColor; ctx.beginPath(); ctx.roundRect(x, -20, width, topH + 20, {bl: 15, br: 15}); ctx.fill();
+            ctx.fillStyle = grassColor; ctx.beginPath(); ctx.roundRect(x-6, topH-20, width+12, 25, 12); ctx.fill();
+            ctx.fillStyle = grassHighlight; ctx.beginPath(); ctx.roundRect(x-6, topH-20, width+12, 8, {tl:12, tr:12}); ctx.fill();
+            ctx.fillStyle = dirtColor; ctx.beginPath(); ctx.roundRect(x, botY, width, canvas.height - botY + 20, {tl: 15, tr: 15}); ctx.fill();
+            ctx.fillStyle = grassColor; ctx.beginPath(); ctx.roundRect(x-6, botY, width+12, 25, 12); ctx.fill();
+            ctx.fillStyle = grassHighlight; ctx.beginPath(); ctx.roundRect(x-6, botY, width+12, 8, {tl:12, tr:12}); ctx.fill();
+            ctx.restore();
+        }
+
+        function drawBackground(elapsedTime) {
+            const bgX = elapsedTime * (pixelsPerSec * 0.4);
+            ctx.fillStyle = '#80DEEA'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#FFD180'; ctx.beginPath(); ctx.arc(canvas.width - 200, 150, 100, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#FFF176'; ctx.beginPath(); ctx.ellipse(canvas.width - 200, 150, 140, 30, Math.PI/6, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#FFFFFF';
+            clouds.forEach(c => { let cx = (c.x - bgX * c.s) % (canvas.width + c.w); if (cx < -c.w) cx += canvas.width + c.w; ctx.beginPath(); ctx.roundRect(cx, c.y, c.w, 50, 25); ctx.fill(); });
+            mountains.forEach(m => { let mx = (m.x - bgX * 0.6) % (canvas.width + m.w); if (mx < -m.w) mx += canvas.width + m.w; ctx.fillStyle = m.color; ctx.beginPath(); ctx.roundRect(mx, m.y - m.h, m.w, m.h + GROUND_HEIGHT, m.w/2); ctx.fill(); });
+            ctx.fillStyle = '#795548'; ctx.fillRect(0, canvas.height - GROUND_HEIGHT, canvas.width, GROUND_HEIGHT);
+            ctx.fillStyle = '#8BC34A'; ctx.fillRect(0, canvas.height - GROUND_HEIGHT - 20, canvas.width, 20);
+        }
+
+        function gameLoop() {
+            if (!gameActive && !isCountingDown) return;
+            const currentTime = audioContext.currentTime;
+            let currentBeat = isCountingDown ? (currentTime - countdownStartTime)/beatDurationSec - totalPrepBeats : (currentTime - songStartTime)/beatDurationSec;
+            
+            if (Math.floor(currentBeat) > lastScheduledBeat) {
+                let target = isCountingDown ? countdownStartTime + (totalPrepBeats + Math.floor(currentBeat)) * beatDurationSec : songStartTime + Math.floor(currentBeat) * beatDurationSec;
+                const isStrong = (Math.floor(currentBeat) + (currentSongData.pickup || 0)) % currentSongData.meter === 0;
+                playTickAtTime(target, isStrong);
+                lastScheduledBeat = Math.floor(currentBeat);
+            }
+
+            rainbowHue = (rainbowHue + 2) % 360;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground(isCountingDown ? currentBeat * beatDurationSec : (currentTime - songStartTime));
+
+            const detected = pitchToNoteName(currentPitch);
+            if (gameActive) {
+                let displayNote = detected.replace(/[456]/g, '');
+                if (detected.includes('6')) displayNote += "'";
+                document.getElementById('target-note').innerText = displayNote;
+            }
+            
+            const isPrepPeriod = isCountingDown && (currentBeat >= -2);
+            if ((gameActive || isPrepPeriod) && currentPitch !== -1) {
+                const norm = (currentPitch - 260) / (1300 - 260);
+                monster.targetY = canvas.height - GROUND_HEIGHT - (norm * (canvas.height - GROUND_HEIGHT - 300) + 150);
+            } else if (!gameActive && !isPrepPeriod) {
+                monster.targetY = canvas.height - GROUND_HEIGHT - monster.size/2;
+            }
+            monster.y += (monster.targetY - monster.y) * 0.2;
+            
+            if (monster.hurtCooldown > 0) monster.hurtCooldown--;
+            if (monster.perfectTimer > 0) monster.perfectTimer--;
+            monster.expression = (monster.hurtCooldown > 0) ? 'miss' : (monster.perfectTimer > 0 ? 'perfect' : (combo > 0 ? 'happy' : 'normal'));
+
+            let lastObsX = 0;
+            for (let obs of obstacles) {
+                const obsX = MONSTER_X + (obs.targetBeat - currentBeat) * BEAT_PIXELS;
+                lastObsX = obsX;
+                if (obsX > -300 && obsX < canvas.width + 300) {
+                    const gap = 350; 
+                    const topH = obs.y - gap/2, botY = obs.y + gap/2;
+                    drawFlatPillar(obsX, obs.width, topH, botY);
+                    if (gameActive && MONSTER_X + 20 > obsX && MONSTER_X - 20 < obsX + obs.width) {
+                        if (monster.y - 20 < topH || monster.y + 20 > botY) takeDamage();
+                    }
+                    if (!obs.collected) {
+                        const bx = obsX + obs.width/2, by = obs.y;
+                        const matched = (detected === obs.note) && Math.abs(bx - MONSTER_X) < 120;
+                        ctx.save(); ctx.shadowBlur = matched ? 20 : 0; ctx.shadowColor = '#FFF'; ctx.fillStyle = matched ? '#FFF' : '#FFEB3B'; 
+                        ctx.beginPath(); ctx.moveTo(bx, by - 40); ctx.lineTo(bx + 40, by); ctx.lineTo(bx, by + 40); ctx.lineTo(bx - 40, by); ctx.fill(); ctx.restore();
+                        
+                        let noteName = obs.note.replace(/[456]/g, '');
+                        if (obs.note.includes('6')) noteName += "'";
+                        ctx.fillStyle = '#333'; ctx.font = '900 28px Inter'; ctx.textAlign = 'center'; ctx.fillText(noteName, bx, by + 10);
+                        
+                        if (gameActive && matched && Math.abs(monster.y - obs.y) < 100) { 
+                            obs.collected = true; combo++; score += (100 + combo * 10); monster.perfectTimer = 30; updateComboUI();
+                            document.getElementById('score-val').innerText = Math.floor(score/10);
+                            spawnGemEffect(bx, by, combo >= 8 ? `hsl(${rainbowHue}, 100%, 70%)` : (combo >= 4 ? '#FF9100' : '#FFEB3B'));
+                        }
+                        if (gameActive && bx < MONSTER_X - 100 && !obs.missed && !obs.collected) { 
+                            obs.missed = true; if (combo > 0) { combo = 0; monster.expression = 'miss'; updateComboUI(); } 
+                        }
+                    }
+                }
+            }
+            for (let i = effects.length - 1; i >= 0; i--) {
+                let e = effects[i]; e.x -= (pixelsPerSec/60); e.x += e.vx; e.y += e.vy; e.life--; 
+                ctx.fillStyle = e.color; ctx.fillRect(e.x-e.size/2, e.y-e.size/2, e.size, e.size); if (e.life <= 0) effects.splice(i, 1);
+            }
+            drawMonster(monster.x, monster.y, monster.size, monster.hurtCooldown, combo, monster.expression);
+            if (gameActive && lastObsX < -300) endGame(true);
+            requestAnimationFrame(gameLoop);
+        }
+
+        function pitchToNoteName(f) {
+            if (f === -1) return "None";
+            let minDiff = Infinity, closestNote = "None";
+            for (const [note, freq] of Object.entries(NOTE_FREQUENCIES)) {
+                const diff = Math.abs(f - freq);
+                if (diff < minDiff && diff < freq * 0.1) { minDiff = diff; closestNote = note; }
+            }
+            return closestNote;
+        }
+
+        if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+                if (typeof r === 'number') r = {tl:r, tr:r, br:r, bl:r}; else r = Object.assign({tl:0, tr:0, br:0, bl:0}, r);
+                this.beginPath(); this.moveTo(x+r.tl, y); this.lineTo(x+w-r.tr, y); this.quadraticCurveTo(x+w, y, x+w, y+r.tr); this.lineTo(x+w, y+h-r.br); this.quadraticCurveTo(x+w, y+h, x+w-r.br, y+h); this.lineTo(x+r.bl, y+h); this.quadraticCurveTo(x, y+h, x, y+h-r.bl); this.lineTo(x, y+r.tl); this.quadraticCurveTo(x, y, x+r.tl, y); this.closePath(); return this;
+            }
+        }
+        
+        // 頁面初始化
+        resize();
+        updateSensitivity(50); // 預設 50% 靈敏度
     </script>
 </body>
 </html>

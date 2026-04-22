@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>牧童笛小鳥大挑戰！</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #87CEEB; /* 天藍色背景 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #start-screen {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 40px;
+            border-radius: 30px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            border: 5px solid #FFD700;
+            max-width: 80%;
+        }
+
+        h1 {
+            color: #FF4500;
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px #fff;
+        }
+
+        p {
+            font-size: 1.5rem;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .icon-container {
+            font-size: 80px;
+            margin: 20px 0;
+            display: block;
+            animation: float 2s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        #start-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 20px 50px;
+            font-size: 2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        #start-button:hover {
+            background-color: #45a049;
+            transform: scale(1.1);
+        }
+
+        .instructions {
+            margin-top: 20px;
+            background: #FFFACD;
+            padding: 15px;
+            border-radius: 15px;
+            font-size: 1.2rem;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="start-screen">
+        <span class="icon-container">🎵🐦</span>
+        <h1>牧童笛小鳥大挑戰</h1>
+        <p>準備好你的牧童笛了嗎？</p>
+        
+        <div class="instructions">
+            💡 玩法：吹出聲音，讓小鳥飛起來！<br>
+            不要碰到管子喔！
+        </div>
+
+        <br>
+        <button id="start-button" onclick="startGame()">開始遊戲！</button>
+    </div>
+
+    <script>
+        function startGame() {
+            // 這裡可以跳轉到遊戲主頁面，例如：
+            // window.location.href = "game.html";
+            alert("遊戲即將開始，請準備好麥克風！");
+            // 或者調用你的 game.js 啟動函式
+        }
+    </script>
+</body>
+</html>

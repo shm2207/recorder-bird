@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>牧童笛音樂小鳥 Recorder Bird</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -12,6 +12,7 @@
             background-color: #80DEEA;
             margin: 0;
             user-select: none;
+            touch-action: none; /* 防止手機瀏覽器滑動與雙指縮放 */
         }
         #game-canvas { display: block; background-color: #80DEEA; }
         .modal { background: #FFFFFF; border: 8px solid #333333; border-radius: 40px; box-shadow: 12px 12px 0px rgba(0,0,0,0.2); }
@@ -50,122 +51,140 @@
         }
         .animate-count { animation: count-zoom 0.8s ease-out forwards; }
         .combo-text { text-shadow: 3px 3px 0px rgba(0,0,0,0.2); }
+
+        /* 手機直向警告遮罩 */
+        #portrait-warning { display: none; }
+        @media screen and (orientation: portrait) {
+            #portrait-warning { display: flex; }
+        }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen">
 
+    <!-- 手機直向模式警告 (Landscape Lock) -->
+    <div id="portrait-warning" class="fixed inset-0 z-[100] bg-cyan-900 flex-col items-center justify-center text-white text-center p-8">
+        <div class="text-7xl mb-6 rotate-90 animate-pulse">📱</div>
+        <h2 class="text-3xl font-black mb-4">請將設備轉為橫向</h2>
+        <p class="text-lg font-semibold text-cyan-200">此遊戲需要較寬的畫面來顯示樂譜與飛行空間</p>
+    </div>
+
     <!-- 開始畫面 -->
-    <div id="start-screen" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-cyan-100 p-8 overflow-y-auto">
-        <div class="mb-6 bg-white p-6 rounded-[40px] border-4 border-gray-800 shadow-[8px_8px_0px_rgba(0,0,0,0.2)]">
-             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" class="w-24 h-24">
+    <div id="start-screen" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-cyan-100 p-4 md:p-8 overflow-y-auto">
+        <div class="mb-4 md:mb-6 bg-white p-4 md:p-6 rounded-[30px] md:rounded-[40px] border-4 border-gray-800 shadow-[6px_6px_0px_rgba(0,0,0,0.2)] md:shadow-[8px_8px_0px_rgba(0,0,0,0.2)]">
+             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" class="w-16 h-16 md:w-24 md:h-24">
                 <circle cx="50" cy="55" r="45" fill="#E91E63"/> 
                 <circle cx="50" cy="45" r="20" fill="#FFF"/>    
                 <circle cx="50" cy="45" r="8" fill="#333"/>     
                 <path d="M35 75 Q50 90 65 75" stroke="#333" stroke-width="5" stroke-linecap="round" fill="none"/> 
              </svg>
         </div>
-        <h1 class="text-6xl font-extrabold text-gray-800 mb-4 tracking-tighter">牧童笛音樂小鳥</h1>
+        <h1 class="text-4xl md:text-6xl font-extrabold text-gray-800 mb-4 tracking-tighter text-center">牧童笛音樂小鳥</h1>
         
         <!-- 首頁音量與靈敏度設定 -->
-        <div class="flex flex-col md:flex-row gap-4 mb-6 w-full max-w-2xl justify-center">
+        <div class="flex flex-col md:flex-row gap-3 md:gap-4 mb-4 md:mb-6 w-full max-w-2xl justify-center">
             <!-- 節拍器音量 -->
-            <div class="hud-panel flex justify-between items-center gap-3 px-5 py-3 rounded-full w-full">
-                <span class="text-sm font-bold text-gray-700 whitespace-nowrap">🥁 節拍器:</span>
+            <div class="hud-panel flex justify-between items-center gap-2 md:gap-3 px-4 md:px-5 py-2 md:py-3 rounded-full w-full">
+                <span class="text-xs md:text-sm font-bold text-gray-700 whitespace-nowrap">🥁 節拍器:</span>
                 <input type="range" min="0" max="1" step="0.1" value="0.5" class="volume-slider w-full" id="start-vol-slider" oninput="updateMetronomeVolume(this.value)">
-                <span id="vol-display-start" class="font-black text-pink-600 w-10 text-right">50%</span>
+                <span id="vol-display-start" class="font-black text-pink-600 w-8 md:w-10 text-right text-xs md:text-base">50%</span>
             </div>
             <!-- 麥克風靈敏度 -->
-            <div class="hud-panel flex justify-between items-center gap-3 px-5 py-3 rounded-full w-full relative group">
-                <span class="text-sm font-bold text-gray-700 whitespace-nowrap">🎙️ 靈敏度:</span>
+            <div class="hud-panel flex justify-between items-center gap-2 md:gap-3 px-4 md:px-5 py-2 md:py-3 rounded-full w-full relative group">
+                <span class="text-xs md:text-sm font-bold text-gray-700 whitespace-nowrap">🎙️ 靈敏度:</span>
                 <input type="range" min="1" max="100" step="1" value="50" class="volume-slider sens-slider w-full" id="start-sens-slider" oninput="updateSensitivity(this.value)">
-                <span id="sens-display-start" class="font-black text-blue-600 w-10 text-right">50%</span>
+                <span id="sens-display-start" class="font-black text-blue-600 w-8 md:w-10 text-right text-xs md:text-base">50%</span>
                 <!-- 靈敏度提示說明 -->
-                <div class="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs text-gray-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                <div class="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] md:text-xs text-gray-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                     環境吵雜請調低，收音微弱請調高
                 </div>
             </div>
         </div>
 
-        <div class="mb-8 flex flex-col items-center hud-panel p-6 rounded-[30px]">
-            <span class="text-xl text-gray-700 mb-4 font-bold">選擇難度：</span>
-            <div class="flex gap-6">
-                <button onclick="setDifficulty(0.75)" id="diff-beginner" class="diff-btn btn bg-green-400 text-white px-8 py-3 rounded-[20px] text-xl font-black">初學者 (慢)</button>
-                <button onclick="setDifficulty(1.0)" id="diff-pro" class="diff-btn btn bg-purple-500 text-white px-8 py-3 rounded-[20px] text-xl font-black diff-btn-active">演奏家 (原速)</button>
+        <div class="mb-4 md:mb-8 flex flex-col items-center hud-panel p-4 md:p-6 rounded-[20px] md:rounded-[30px] w-full max-w-2xl">
+            <span class="text-sm md:text-xl text-gray-700 mb-2 md:mb-4 font-bold">選擇難度：</span>
+            <div class="flex gap-2 md:gap-6 w-full justify-center">
+                <button onclick="setDifficulty(0.75)" id="diff-beginner" class="diff-btn btn bg-green-400 text-white px-4 md:px-8 py-2 md:py-3 rounded-[15px] md:rounded-[20px] text-sm md:text-xl font-black w-full">初學者</button>
+                <button onclick="setDifficulty(1.0)" id="diff-pro" class="diff-btn btn bg-purple-500 text-white px-4 md:px-8 py-2 md:py-3 rounded-[15px] md:rounded-[20px] text-sm md:text-xl font-black diff-btn-active w-full">演奏家</button>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-4xl">
-            <button onclick="handleStart('mary')" class="btn bg-pink-500 text-white p-6 rounded-[24px] text-2xl font-black text-left flex items-center justify-between">瑪莉有隻小綿羊 <span class="text-sm opacity-70">4/4 拍</span></button>
-            <button onclick="handleStart('ode')" class="btn bg-yellow-400 text-gray-800 p-6 rounded-[24px] text-2xl font-black text-left flex items-center justify-between">歡樂頌 <span class="text-sm opacity-70">4/4 拍 (完整)</span></button>
-            <button onclick="handleStart('edelweiss')" class="btn bg-green-500 text-white p-6 rounded-[24px] text-2xl font-black text-left flex items-center justify-between">雪絨花 <span class="text-sm opacity-70">3/4 拍 (C大調)</span></button>
-            <button onclick="handleStart('amazing')" class="btn bg-blue-500 text-white p-6 rounded-[24px] text-2xl font-black text-left flex items-center justify-between">奇異恩典 <span class="text-sm opacity-70">3/4 拍 (完整)</span></button>
+        <!-- 考慮手機高度，加入 max-height 和 scroll -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 w-full max-w-4xl max-h-[35vh] md:max-h-full overflow-y-auto pr-2 pb-4">
+            <button onclick="handleStart('mary')" class="btn bg-pink-500 text-white p-4 md:p-6 rounded-[20px] md:rounded-[24px] text-base md:text-2xl font-black text-left flex items-center justify-between">瑪莉有隻小綿羊 <span class="text-xs md:text-sm opacity-70 ml-2">4/4 拍</span></button>
+            <button onclick="handleStart('ode')" class="btn bg-yellow-400 text-gray-800 p-4 md:p-6 rounded-[20px] md:rounded-[24px] text-base md:text-2xl font-black text-left flex items-center justify-between">歡樂頌 <span class="text-xs md:text-sm opacity-70 ml-2">4/4 拍 (完整)</span></button>
+            <button onclick="handleStart('edelweiss')" class="btn bg-green-500 text-white p-4 md:p-6 rounded-[20px] md:rounded-[24px] text-base md:text-2xl font-black text-left flex items-center justify-between">雪絨花 <span class="text-xs md:text-sm opacity-70 ml-2">3/4 拍 (C大調)</span></button>
+            <button onclick="handleStart('amazing')" class="btn bg-blue-500 text-white p-4 md:p-6 rounded-[20px] md:rounded-[24px] text-base md:text-2xl font-black text-left flex items-center justify-between">奇異恩典 <span class="text-xs md:text-sm opacity-70 ml-2">3/4 拍 (完整)</span></button>
         </div>
     </div>
 
     <!-- 預備拍倒數 -->
-    <div id="countdown-overlay" class="hidden fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black/10 pointer-events-none">
-        <div id="countdown-text" class="text-[15rem] font-black text-yellow-400" style="-webkit-text-stroke: 6px #333;"></div>
-        <div id="prep-hint" class="text-4xl font-bold text-white bg-black/40 px-8 py-2 rounded-full opacity-0 transition-opacity duration-300">準備第一個音！</div>
+    <div id="countdown-overlay" class="hidden fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black/20 pointer-events-none">
+        <div id="countdown-text" class="text-[10rem] md:text-[15rem] font-black text-yellow-400 drop-shadow-xl" style="-webkit-text-stroke: 4px #333;"></div>
+        <div id="prep-hint" class="text-2xl md:text-4xl font-bold text-white bg-black/50 px-6 md:px-8 py-2 rounded-full opacity-0 transition-opacity duration-300 shadow-lg">準備第一個音！</div>
     </div>
 
     <!-- 遊戲中 UI -->
-    <div id="game-ui" class="hidden fixed top-0 left-0 w-full p-8 flex justify-between items-start pointer-events-none z-40">
-        <div class="flex flex-col gap-4">
-            <div id="hp-container" class="hud-panel flex gap-2 p-3 rounded-full pointer-events-auto">
-                <span id="hp-hearts" class="text-3xl tracking-widest">❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️</span>
-            </div>
-            <div id="score-container" class="hud-panel px-8 py-3 rounded-full text-2xl flex items-center gap-3 font-black text-gray-800 pointer-events-auto">
-                💎 得分: <span id="score-val" class="inline-block text-pink-600 text-3xl">0</span>
+    <div id="game-ui" class="hidden fixed top-0 left-0 w-full p-2 md:p-8 flex justify-between items-start pointer-events-none z-40">
+        <div class="flex flex-col gap-2 md:gap-4 scale-75 md:scale-100 origin-top-left">
+            <div class="flex gap-2">
+                <div id="hp-container" class="hud-panel flex gap-1 p-2 md:p-3 rounded-full pointer-events-auto">
+                    <span id="hp-hearts" class="text-lg md:text-3xl tracking-widest">❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️</span>
+                </div>
+                <div id="score-container" class="hud-panel px-4 md:px-8 py-2 md:py-3 rounded-full text-lg md:text-2xl flex items-center gap-2 font-black text-gray-800 pointer-events-auto">
+                    💎 得分: <span id="score-val" class="inline-block text-pink-600 text-xl md:text-3xl">0</span>
+                </div>
             </div>
             
-            <!-- 遊戲中音量與靈敏度控制 -->
+            <!-- 遊戲中音量與靈敏度控制 (手機上微調) -->
             <div class="flex gap-2">
-                <div class="hud-panel px-4 py-2 rounded-full flex items-center gap-2 pointer-events-auto shadow-md hover:scale-105 transition-transform">
-                    <span class="text-sm font-bold text-gray-600" title="節拍器音量">🥁</span>
-                    <input type="range" min="0" max="1" step="0.1" value="0.5" class="volume-slider w-16" id="game-vol-slider" oninput="updateMetronomeVolume(this.value)">
+                <div class="hud-panel px-3 py-1 md:px-4 md:py-2 rounded-full flex items-center gap-2 pointer-events-auto shadow-md">
+                    <span class="text-xs md:text-sm font-bold text-gray-600" title="節拍器音量">🥁</span>
+                    <input type="range" min="0" max="1" step="0.1" value="0.5" class="volume-slider w-12 md:w-16" id="game-vol-slider" oninput="updateMetronomeVolume(this.value)">
                 </div>
-                <div class="hud-panel px-4 py-2 rounded-full flex items-center gap-2 pointer-events-auto shadow-md hover:scale-105 transition-transform">
-                    <span class="text-sm font-bold text-gray-600" title="麥克風靈敏度">🎙️</span>
-                    <input type="range" min="1" max="100" step="1" value="50" class="volume-slider sens-slider w-16" id="game-sens-slider" oninput="updateSensitivity(this.value)">
+                <div class="hud-panel px-3 py-1 md:px-4 md:py-2 rounded-full flex items-center gap-2 pointer-events-auto shadow-md">
+                    <span class="text-xs md:text-sm font-bold text-gray-600" title="麥克風靈敏度">🎙️</span>
+                    <input type="range" min="1" max="100" step="1" value="50" class="volume-slider sens-slider w-12 md:w-16" id="game-sens-slider" oninput="updateSensitivity(this.value)">
                 </div>
             </div>
 
-            <div id="combo-container" class="opacity-0 transform transition-all duration-300 scale-50">
-                 <div class="hud-panel bg-pink-500 text-white px-6 py-2 rounded-2xl border-4 border-white inline-block">
-                     <span class="text-xl font-bold uppercase italic">Combo</span><br/>
-                     <span id="combo-val" class="text-5xl font-black combo-text">0</span>
+            <div id="combo-container" class="opacity-0 transform transition-all duration-300 -translate-x-4 md:-translate-x-10">
+                 <div class="hud-panel bg-pink-500 text-white px-4 py-1 md:px-6 md:py-2 rounded-xl md:rounded-2xl border-2 md:border-4 border-white inline-block shadow-lg">
+                     <span class="text-xs md:text-xl font-bold uppercase italic">Combo</span><br/>
+                     <span id="combo-val" class="text-3xl md:text-5xl font-black combo-text">0</span>
                  </div>
             </div>
         </div>
-        <div class="hud-panel bg-yellow-400 px-10 py-4 rounded-full text-5xl font-black text-gray-800 flex items-center pointer-events-auto">
-            🎵 <span id="target-note" class="ml-3 text-6xl text-pink-600">-</span>
+        <div class="hud-panel bg-yellow-400 px-6 py-2 md:px-10 md:py-4 rounded-full text-2xl md:text-5xl font-black text-gray-800 flex items-center pointer-events-auto scale-75 md:scale-100 origin-top-right shadow-lg">
+            🎵 <span id="target-note" class="ml-2 md:ml-3 text-4xl md:text-6xl text-pink-600">-</span>
         </div>
     </div>
 
     <!-- 結算畫面 -->
-    <div id="message-overlay" class="hidden fixed inset-0 flex items-center justify-center z-50 bg-black/70">
-        <div class="modal p-12 max-w-xl w-full text-center relative">
-            <div id="reward-icon" class="text-9xl mb-6">🏆</div>
-            <h2 id="modal-title" class="text-6xl text-gray-800 mb-3 font-black">精彩演出！</h2>
-            <div class="bg-gray-100 rounded-[24px] p-8 mb-10 border-4 border-gray-300 text-center">
-                <span class="text-3xl text-gray-700 font-bold">得分紀錄</span><br/>
-                <span id="current-score-display" class="text-8xl font-black text-pink-500">0</span>
+    <div id="message-overlay" class="hidden fixed inset-0 flex items-center justify-center z-50 bg-black/70 p-4">
+        <div class="modal p-8 md:p-12 max-w-xl w-full text-center relative">
+            <div id="reward-icon" class="text-7xl md:text-9xl mb-4 md:mb-6 drop-shadow-lg">🏆</div>
+            <h2 id="modal-title" class="text-4xl md:text-6xl text-gray-800 mb-2 font-black">精彩演出！</h2>
+            <div class="bg-gray-100 rounded-[20px] md:rounded-[24px] p-6 md:p-8 mb-6 md:mb-10 border-2 md:border-4 border-gray-300 text-center">
+                <span class="text-xl md:text-3xl text-gray-700 font-bold">得分紀錄</span><br/>
+                <span id="current-score-display" class="text-6xl md:text-8xl font-black text-pink-500 drop-shadow-md">0</span>
             </div>
-            <button onclick="location.reload()" class="btn bg-cyan-400 text-gray-900 px-16 py-5 rounded-[24px] text-3xl font-black w-full">返回主頁</button>
+            <button onclick="location.reload()" class="btn bg-cyan-400 text-gray-900 px-8 md:px-16 py-4 md:py-5 rounded-[15px] md:rounded-[24px] text-xl md:text-3xl font-black w-full">返回主頁</button>
         </div>
     </div>
 
     <canvas id="game-canvas"></canvas>
 
     <script>
+        // --- 核心變數與音頻邏輯 ---
         let audioContext, analyser, microphone, currentPitch = 0, isAudioInit = false;
         let difficulty = 1.0;
         let metronomeVolume = 0.5; 
-        let micSensitivity = 0.0255; // 麥克風靈敏度閾值預設值
+        let micSensitivity = 0.0255; 
         
-        const BEAT_PIXELS = 450;  
-        const MONSTER_X = 220;    
-        const GROUND_HEIGHT = 80; 
+        // 響應式變數 (原為 const，現改為 let 以便動態縮放)
+        let BEAT_PIXELS = 450;  
+        let MONSTER_X = 220;    
+        let GROUND_HEIGHT = 80; 
 
         const NOTE_FREQUENCIES = {
             'C4': 261.63, 'D4': 293.66, 'E4': 329.63, 'F4': 349.23, 'G4': 392.00, 'A4': 440.00, 'B4': 493.88,
@@ -212,26 +231,19 @@
             }
         };
 
-        // 更新靈敏度
         function updateSensitivity(val) {
             const percent = val + "%";
-            // 更新首頁顯示
             const displayStart = document.getElementById('sens-display-start');
             if (displayStart) displayStart.innerText = percent;
             
-            // 雙向綁定設定值
             const startSlider = document.getElementById('start-sens-slider');
             const gameSlider = document.getElementById('game-sens-slider');
             if (startSlider && startSlider.value !== val) startSlider.value = val;
             if (gameSlider && gameSlider.value !== val) gameSlider.value = val;
             
-            // 換算成 RMS 閾值
-            // val 1 (最不靈敏) -> 0.05
-            // val 100 (最靈敏) -> 0.001
             micSensitivity = 0.05 - (parseInt(val) / 100) * 0.049;
         }
 
-        // 更新節拍器音量
         function updateMetronomeVolume(val) {
             metronomeVolume = parseFloat(val);
             const percent = Math.round(metronomeVolume * 100) + "%";
@@ -262,75 +274,10 @@
                 microphone.connect(analyser);
                 isAudioInit = true;
                 detectPitch();
-            } catch (err) { alert("請允許麥克風訪問！"); }
-        }
-
-        function playTickAtTime(time, isStrong = false) {
-            if (!audioContext || metronomeVolume <= 0) return;
-
-            if (isStrong) {
-                const osc = audioContext.createOscillator();
-                const gain = audioContext.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(150, time);
-                osc.frequency.exponentialRampToValueAtTime(50, time + 0.1);
-                gain.gain.setValueAtTime(0, time);
-                gain.gain.linearRampToValueAtTime(metronomeVolume * 0.8, time + 0.005);
-                gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.5);
-                osc.connect(gain);
-                gain.connect(audioContext.destination);
-                osc.start(time);
-                osc.stop(time + 0.6);
-            } else {
-                const bufferSize = audioContext.sampleRate * 0.05; 
-                const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-                const noise = audioContext.createBufferSource();
-                noise.buffer = buffer;
-                const filter = audioContext.createBiquadFilter();
-                filter.type = 'highpass';
-                filter.frequency.setValueAtTime(2000, time);
-                const gain = audioContext.createGain();
-                gain.gain.setValueAtTime(0, time);
-                gain.gain.linearRampToValueAtTime(metronomeVolume * 0.4, time + 0.002);
-                gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.05);
-                noise.connect(filter);
-                filter.connect(gain);
-                gain.connect(audioContext.destination);
-                noise.start(time);
+            } catch (err) { 
+                console.error(err);
+                alert("請允許麥克風訪問以使用音高偵測功能！"); 
             }
-        }
-
-        function detectPitch() {
-            const buffer = new Float32Array(analyser.fftSize);
-            const update = () => {
-                analyser.getFloatTimeDomainData(buffer);
-                currentPitch = autoCorrelate(buffer, audioContext.sampleRate);
-                requestAnimationFrame(update);
-            };
-            update();
-        }
-
-        function autoCorrelate(buf, sampleRate) {
-            let SIZE = buf.length, rms = 0;
-            for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
-            
-            // 使用動態調整的麥克風靈敏度閾值
-            if (Math.sqrt(rms / SIZE) < micSensitivity) return -1;
-            
-            let r1 = 0, r2 = SIZE - 1, thres = 0.2;
-            for (let i = 0; i < SIZE / 2; i++) { if (Math.abs(buf[i]) < thres) { r1 = i; break; } }
-            for (let i = 1; i < SIZE / 2; i++) { if (Math.abs(buf[SIZE - i]) < thres) { r2 = SIZE - i; break; } }
-            buf = buf.slice(r1, r2); SIZE = buf.length;
-            const c = new Array(SIZE).fill(0);
-            for (let i = 0; i < SIZE; i++) {
-                for (let j = 0; j < SIZE - i; j++) c[i] = c[i] + buf[j] * buf[j + i];
-            }
-            let d = 0; while (c[d] > c[d + 1]) d++;
-            let maxval = -1, maxpos = -1;
-            for (let i = d; i < SIZE; i++) { if (c[i] > maxval) { maxval = c[i]; maxpos = i; } }
-            return sampleRate / maxpos;
         }
 
         const canvas = document.getElementById('game-canvas');
@@ -351,8 +298,22 @@
         let obstacles = [], clouds = [], mountains = [], effects = [];
         let songStartTime = 0, countdownStartTime = 0, totalPrepBeats = 0, beatDurationSec = 0, pixelsPerSec = 0, lastScheduledBeat = -999, rainbowHue = 0;
 
+        // --- 響應式佈局核心 ---
         function resize() { 
-            canvas.width = window.innerWidth; canvas.height = window.innerHeight; 
+            canvas.width = window.innerWidth; 
+            canvas.height = window.innerHeight; 
+            
+            // 動態調整變數以適應不同螢幕尺寸
+            MONSTER_X = Math.min(220, canvas.width * 0.25);
+            BEAT_PIXELS = Math.min(450, canvas.width * 0.45); // 讓音符間距在小螢幕縮短
+            GROUND_HEIGHT = Math.min(80, canvas.height * 0.15);
+            monster.size = Math.min(70, canvas.height * 0.1); 
+            monster.x = MONSTER_X;
+
+            if (beatDurationSec > 0) {
+                pixelsPerSec = BEAT_PIXELS / beatDurationSec;
+            }
+
             if(!gameActive && !isCountingDown) {
                 monster.y = monster.targetY = canvas.height - GROUND_HEIGHT - monster.size/2;
             }
@@ -362,17 +323,23 @@
 
         function initBackgroundElements() {
             clouds = []; mountains = [];
-            for(let i=0; i<6; i++) clouds.push({ x: Math.random()*canvas.width, y: 50 + Math.random()*200, w: 120+Math.random()*100, s: 0.3+Math.random()*0.5 });
+            for(let i=0; i<6; i++) clouds.push({ x: Math.random()*canvas.width, y: canvas.height * 0.1 + Math.random()*(canvas.height * 0.3), w: 80+Math.random()*80, s: 0.3+Math.random()*0.5 });
             let mx = 0;
             while(mx < canvas.width * 2) {
                 const isGreen = Math.random() > 0.4;
-                mountains.push({ x: mx, y: canvas.height - GROUND_HEIGHT, w: 250 + Math.random()*200, h: 200 + Math.random()*300, color: isGreen ? '#4CAF50' : '#8D6E63', highlightColor: isGreen ? '#81C784' : '#BCAAA4' });
-                mx += 200 + Math.random()*150;
+                mountains.push({ x: mx, y: canvas.height - GROUND_HEIGHT, w: 150 + Math.random()*150, h: 100 + Math.random()*200, color: isGreen ? '#4CAF50' : '#8D6E63', highlightColor: isGreen ? '#81C784' : '#BCAAA4' });
+                mx += 150 + Math.random()*100;
             }
         }
 
         async function handleStart(songId) {
             if (!isAudioInit) await initAudio();
+            
+            // 解鎖 iOS Safari 音訊播放限制
+            if (audioContext && audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
+
             document.getElementById('start-screen').classList.add('hidden');
             currentSongData = SONGS[songId];
             
@@ -419,9 +386,12 @@
             for (let item of currentSongNotes) {
                 const freq = NOTE_FREQUENCIES[item.n];
                 const normalized = (freq - 260) / (1300 - 260); 
-                const usableHeight = canvas.height - GROUND_HEIGHT - 300; 
-                const targetY = canvas.height - GROUND_HEIGHT - (normalized * usableHeight + 150);
-                obstacles.push({ targetBeat: currentBeatOffset, y: targetY, note: item.n, width: 100, collected: false, missed: false });
+                // 動態高度計算
+                const usableHeight = canvas.height - GROUND_HEIGHT - (monster.size * 3); 
+                const targetY = canvas.height - GROUND_HEIGHT - (normalized * usableHeight + monster.size * 1.5);
+                
+                const obsWidth = Math.min(100, canvas.width * 0.12); // 動態地塊寬度
+                obstacles.push({ targetBeat: currentBeatOffset, y: targetY, note: item.n, width: obsWidth, collected: false, missed: false });
                 currentBeatOffset += item.d;
             }
         }
@@ -431,8 +401,8 @@
         function updateComboUI() {
             const container = document.getElementById('combo-container');
             document.getElementById('combo-val').innerText = combo;
-            if (combo > 0) container.classList.replace('opacity-0', 'opacity-100'), container.classList.replace('scale-50', 'scale-100');
-            else container.classList.replace('opacity-100', 'opacity-0'), container.classList.replace('scale-100', 'scale-50');
+            if (combo > 0) container.classList.remove('opacity-0', '-translate-x-10');
+            else container.classList.add('opacity-0', '-translate-x-10');
         }
 
         function takeDamage() {
@@ -443,35 +413,36 @@
         }
 
         function spawnGemEffect(x, y, color = '#FFEB3B') {
-            for(let i=0; i<12; i++) effects.push({ x: x, y: y, vx: (Math.random()-0.5)*15, vy: (Math.random()-0.5)*15, life: 30, color: color, size: 6 + Math.random()*8 });
+            for(let i=0; i<10; i++) effects.push({ x: x, y: y, vx: (Math.random()-0.5)*12, vy: (Math.random()-0.5)*12, life: 25, color: color, size: 4 + Math.random()*6 });
         }
 
         function endGame(success) {
             gameActive = false; isCountingDown = false;
+            document.getElementById('game-ui').classList.add('hidden');
             document.getElementById('message-overlay').classList.remove('hidden');
             document.getElementById('current-score-display').innerText = Math.floor(score/10);
-            document.getElementById('modal-title').innerText = success ? "完美的演奏！" : "力竭的小鳥";
+            document.getElementById('modal-title').innerText = success ? "完美的演奏！" : "再接再厲...";
         }
 
         function drawEyes(size, expression) {
-            ctx.strokeStyle = '#333'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+            ctx.strokeStyle = '#333'; ctx.lineWidth = size/15; ctx.lineCap = 'round';
             const offset = size/5, ey = -size/8;
             if (expression === 'perfect') {
                 [-offset, offset].forEach(x => {
                     ctx.save(); ctx.translate(x, ey); ctx.fillStyle = '#333'; ctx.beginPath();
                     for(let i=0; i<5; i++) {
-                        ctx.lineTo(Math.cos((18+i*72)/180*Math.PI)*10, -Math.sin((18+i*72)/180*Math.PI)*10);
-                        ctx.lineTo(Math.cos((54+i*72)/180*Math.PI)*5, -Math.sin((54+i*72)/180*Math.PI)*5);
+                        ctx.lineTo(Math.cos((18+i*72)/180*Math.PI)*size/7, -Math.sin((18+i*72)/180*Math.PI)*size/7);
+                        ctx.lineTo(Math.cos((54+i*72)/180*Math.PI)*size/14, -Math.sin((54+i*72)/180*Math.PI)*size/14);
                     }
                     ctx.fill(); ctx.restore();
                 });
             } else if (expression === 'happy') {
-                [-offset, offset].forEach(x => { ctx.beginPath(); ctx.moveTo(x-8, ey+4); ctx.lineTo(x, ey-4); ctx.lineTo(x+8, ey+4); ctx.stroke(); });
+                [-offset, offset].forEach(x => { ctx.beginPath(); ctx.moveTo(x-size/8, ey+size/16); ctx.lineTo(x, ey-size/16); ctx.lineTo(x+size/8, ey+size/16); ctx.stroke(); });
             } else if (expression === 'miss') {
-                [-offset, offset].forEach(x => { ctx.beginPath(); ctx.moveTo(x-6, ey-6); ctx.lineTo(x+6, ey+6); ctx.moveTo(x+6, ey-6); ctx.lineTo(x-6, ey+6); ctx.stroke(); });
+                [-offset, offset].forEach(x => { ctx.beginPath(); ctx.moveTo(x-size/10, ey-size/10); ctx.lineTo(x+size/10, ey+size/10); ctx.moveTo(x+size/10, ey-size/10); ctx.lineTo(x-size/10, ey+size/10); ctx.stroke(); });
             } else {
                 ctx.fillStyle = '#FFF';
-                [-offset, offset].forEach(x => { ctx.beginPath(); ctx.arc(x, ey, size/6, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(x, ey, size/14, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = '#FFF'; });
+                [-offset, offset].forEach(x => { ctx.beginPath(); ctx.arc(x, ey, size/6, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(x, ey, size/16, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = '#FFF'; });
             }
         }
 
@@ -483,34 +454,38 @@
             else if (comboCount >= 6) bodyColor = '#00E676';
             else if (comboCount >= 4) bodyColor = '#FF9100';
             else if (comboCount >= 2) bodyColor = '#00B0FF';
+            
             ctx.fillStyle = bodyColor; ctx.beginPath(); ctx.arc(0, 0, size/2, 0, Math.PI*2); ctx.fill();
             drawEyes(size, expression);
-            ctx.strokeStyle = '#333'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0, size/5, size/6, 0.2*Math.PI, 0.8*Math.PI); ctx.stroke();
+            ctx.strokeStyle = '#333'; ctx.lineWidth = size/15; ctx.beginPath(); ctx.arc(0, size/5, size/6, 0.2*Math.PI, 0.8*Math.PI); ctx.stroke();
             ctx.restore();
         }
 
         function drawFlatPillar(x, width, topH, botY) {
             ctx.save();
             const dirtColor = '#795548', grassColor = '#8BC34A', grassHighlight = '#AED581';
-            ctx.fillStyle = dirtColor; ctx.beginPath(); ctx.roundRect(x, -20, width, topH + 20, {bl: 15, br: 15}); ctx.fill();
-            ctx.fillStyle = grassColor; ctx.beginPath(); ctx.roundRect(x-6, topH-20, width+12, 25, 12); ctx.fill();
-            ctx.fillStyle = grassHighlight; ctx.beginPath(); ctx.roundRect(x-6, topH-20, width+12, 8, {tl:12, tr:12}); ctx.fill();
-            ctx.fillStyle = dirtColor; ctx.beginPath(); ctx.roundRect(x, botY, width, canvas.height - botY + 20, {tl: 15, tr: 15}); ctx.fill();
-            ctx.fillStyle = grassColor; ctx.beginPath(); ctx.roundRect(x-6, botY, width+12, 25, 12); ctx.fill();
-            ctx.fillStyle = grassHighlight; ctx.beginPath(); ctx.roundRect(x-6, botY, width+12, 8, {tl:12, tr:12}); ctx.fill();
+            const br = Math.min(15, width*0.2); // 動態圓角
+            
+            ctx.fillStyle = dirtColor; ctx.beginPath(); ctx.roundRect(x, -20, width, topH + 20, {bl: br, br: br}); ctx.fill();
+            ctx.fillStyle = grassColor; ctx.beginPath(); ctx.roundRect(x-width*0.05, topH-20, width*1.1, 25, br); ctx.fill();
+            ctx.fillStyle = grassHighlight; ctx.beginPath(); ctx.roundRect(x-width*0.05, topH-20, width*1.1, 8, {tl:br, tr:br}); ctx.fill();
+            
+            ctx.fillStyle = dirtColor; ctx.beginPath(); ctx.roundRect(x, botY, width, canvas.height - botY + 20, {tl: br, tr: br}); ctx.fill();
+            ctx.fillStyle = grassColor; ctx.beginPath(); ctx.roundRect(x-width*0.05, botY, width*1.1, 25, br); ctx.fill();
+            ctx.fillStyle = grassHighlight; ctx.beginPath(); ctx.roundRect(x-width*0.05, botY, width*1.1, 8, {tl:br, tr:br}); ctx.fill();
             ctx.restore();
         }
 
         function drawBackground(elapsedTime) {
             const bgX = elapsedTime * (pixelsPerSec * 0.4);
             ctx.fillStyle = '#80DEEA'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#FFD180'; ctx.beginPath(); ctx.arc(canvas.width - 200, 150, 100, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = '#FFF176'; ctx.beginPath(); ctx.ellipse(canvas.width - 200, 150, 140, 30, Math.PI/6, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#FFD180'; ctx.beginPath(); ctx.arc(canvas.width - canvas.width*0.2, canvas.height*0.2, Math.min(100, canvas.width*0.1), 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#FFF176'; ctx.beginPath(); ctx.ellipse(canvas.width - canvas.width*0.2, canvas.height*0.2, Math.min(140, canvas.width*0.14), Math.min(30, canvas.height*0.05), Math.PI/6, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = '#FFFFFF';
-            clouds.forEach(c => { let cx = (c.x - bgX * c.s) % (canvas.width + c.w); if (cx < -c.w) cx += canvas.width + c.w; ctx.beginPath(); ctx.roundRect(cx, c.y, c.w, 50, 25); ctx.fill(); });
+            clouds.forEach(c => { let cx = (c.x - bgX * c.s) % (canvas.width + c.w); if (cx < -c.w) cx += canvas.width + c.w; ctx.beginPath(); ctx.roundRect(cx, c.y, c.w, Math.min(50, canvas.height*0.08), 25); ctx.fill(); });
             mountains.forEach(m => { let mx = (m.x - bgX * 0.6) % (canvas.width + m.w); if (mx < -m.w) mx += canvas.width + m.w; ctx.fillStyle = m.color; ctx.beginPath(); ctx.roundRect(mx, m.y - m.h, m.w, m.h + GROUND_HEIGHT, m.w/2); ctx.fill(); });
             ctx.fillStyle = '#795548'; ctx.fillRect(0, canvas.height - GROUND_HEIGHT, canvas.width, GROUND_HEIGHT);
-            ctx.fillStyle = '#8BC34A'; ctx.fillRect(0, canvas.height - GROUND_HEIGHT - 20, canvas.width, 20);
+            ctx.fillStyle = '#8BC34A'; ctx.fillRect(0, canvas.height - GROUND_HEIGHT - Math.min(20, GROUND_HEIGHT*0.3), canvas.width, Math.min(20, GROUND_HEIGHT*0.3));
         }
 
         function gameLoop() {
@@ -539,7 +514,8 @@
             const isPrepPeriod = isCountingDown && (currentBeat >= -2);
             if ((gameActive || isPrepPeriod) && currentPitch !== -1) {
                 const norm = (currentPitch - 260) / (1300 - 260);
-                monster.targetY = canvas.height - GROUND_HEIGHT - (norm * (canvas.height - GROUND_HEIGHT - 300) + 150);
+                const usableHeight = canvas.height - GROUND_HEIGHT - (monster.size * 3); 
+                monster.targetY = canvas.height - GROUND_HEIGHT - (norm * usableHeight + monster.size * 1.5);
             } else if (!gameActive && !isPrepPeriod) {
                 monster.targetY = canvas.height - GROUND_HEIGHT - monster.size/2;
             }
@@ -554,28 +530,41 @@
                 const obsX = MONSTER_X + (obs.targetBeat - currentBeat) * BEAT_PIXELS;
                 lastObsX = obsX;
                 if (obsX > -300 && obsX < canvas.width + 300) {
-                    const gap = 350; 
+                    const gap = Math.min(350, canvas.height * 0.45); // 動態通道大小
                     const topH = obs.y - gap/2, botY = obs.y + gap/2;
                     drawFlatPillar(obsX, obs.width, topH, botY);
-                    if (gameActive && MONSTER_X + 20 > obsX && MONSTER_X - 20 < obsX + obs.width) {
-                        if (monster.y - 20 < topH || monster.y + 20 > botY) takeDamage();
+                    
+                    const collisionBuffer = monster.size / 4;
+                    if (gameActive && MONSTER_X + collisionBuffer > obsX && MONSTER_X - collisionBuffer < obsX + obs.width) {
+                        if (monster.y - collisionBuffer < topH || monster.y + collisionBuffer > botY) takeDamage();
                     }
+                    
                     if (!obs.collected) {
                         const bx = obsX + obs.width/2, by = obs.y;
-                        const matched = (detected === obs.note) && Math.abs(bx - MONSTER_X) < 120;
-                        ctx.save(); ctx.shadowBlur = matched ? 20 : 0; ctx.shadowColor = '#FFF'; ctx.fillStyle = matched ? '#FFF' : '#FFEB3B'; 
-                        ctx.beginPath(); ctx.moveTo(bx, by - 40); ctx.lineTo(bx + 40, by); ctx.lineTo(bx, by + 40); ctx.lineTo(bx - 40, by); ctx.fill(); ctx.restore();
+                        const matched = (detected === obs.note) && Math.abs(bx - MONSTER_X) < (obs.width + 50);
+                        
+                        ctx.save(); 
+                        ctx.shadowBlur = matched ? 20 : 0; 
+                        ctx.shadowColor = '#FFF'; 
+                        ctx.fillStyle = matched ? '#FFF' : '#FFEB3B'; 
+                        
+                        const gemSize = Math.min(60, canvas.height * 0.08); // 動態寶石大小
+                        ctx.beginPath(); ctx.roundRect(bx - gemSize/2, by - gemSize/2, gemSize, gemSize, gemSize/4); ctx.fill(); ctx.restore();
                         
                         let noteName = obs.note.replace(/[456]/g, '');
                         if (obs.note.includes('6')) noteName += "'";
-                        ctx.fillStyle = '#333'; ctx.font = '900 28px Inter'; ctx.textAlign = 'center'; ctx.fillText(noteName, bx, by + 10);
+                        ctx.fillStyle = '#333'; 
+                        ctx.font = `900 ${gemSize * 0.45}px Inter`; // 動態字型大小
+                        ctx.textAlign = 'center'; 
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(noteName, bx, by + gemSize*0.05);
                         
-                        if (gameActive && matched && Math.abs(monster.y - obs.y) < 100) { 
+                        if (gameActive && matched && Math.abs(monster.y - obs.y) < (gemSize + 30)) { 
                             obs.collected = true; combo++; score += (100 + combo * 10); monster.perfectTimer = 30; updateComboUI();
                             document.getElementById('score-val').innerText = Math.floor(score/10);
                             spawnGemEffect(bx, by, combo >= 8 ? `hsl(${rainbowHue}, 100%, 70%)` : (combo >= 4 ? '#FF9100' : '#FFEB3B'));
                         }
-                        if (gameActive && bx < MONSTER_X - 100 && !obs.missed && !obs.collected) { 
+                        if (gameActive && bx < MONSTER_X - 60 && !obs.missed && !obs.collected) { 
                             obs.missed = true; if (combo > 0) { combo = 0; monster.expression = 'miss'; updateComboUI(); } 
                         }
                     }
@@ -586,10 +575,30 @@
                 ctx.fillStyle = e.color; ctx.fillRect(e.x-e.size/2, e.y-e.size/2, e.size, e.size); if (e.life <= 0) effects.splice(i, 1);
             }
             drawMonster(monster.x, monster.y, monster.size, monster.hurtCooldown, combo, monster.expression);
-            if (gameActive && lastObsX < -300) endGame(true);
+            if (gameActive && lastObsX < -200) endGame(true);
             requestAnimationFrame(gameLoop);
         }
 
+        // ... 音訊邏輯保持不變
+        function playTickAtTime(time, isStrong = false) {
+            if (!audioContext || metronomeVolume <= 0) return;
+            if (isStrong) {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.type = 'sine'; osc.frequency.setValueAtTime(150, time); osc.frequency.exponentialRampToValueAtTime(50, time + 0.1);
+                gain.gain.setValueAtTime(0, time); gain.gain.linearRampToValueAtTime(metronomeVolume * 0.8, time + 0.005); gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.5);
+                osc.connect(gain); gain.connect(audioContext.destination); osc.start(time); osc.stop(time + 0.6);
+            } else {
+                const bufferSize = audioContext.sampleRate * 0.05; 
+                const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+                const noise = audioContext.createBufferSource(); noise.buffer = buffer;
+                const filter = audioContext.createBiquadFilter(); filter.type = 'highpass'; filter.frequency.setValueAtTime(2000, time);
+                const gain = audioContext.createGain(); gain.gain.setValueAtTime(0, time); gain.gain.linearRampToValueAtTime(metronomeVolume * 0.4, time + 0.002); gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.05);
+                noise.connect(filter); filter.connect(gain); gain.connect(audioContext.destination); noise.start(time);
+            }
+        }
         function pitchToNoteName(f) {
             if (f === -1) return "None";
             let minDiff = Infinity, closestNote = "None";
@@ -599,7 +608,6 @@
             }
             return closestNote;
         }
-
         if (!CanvasRenderingContext2D.prototype.roundRect) {
             CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
                 if (typeof r === 'number') r = {tl:r, tr:r, br:r, bl:r}; else r = Object.assign({tl:0, tr:0, br:0, bl:0}, r);
@@ -607,9 +615,8 @@
             }
         }
         
-        // 頁面初始化
         resize();
-        updateSensitivity(50); // 預設 50% 靈敏度
+        updateSensitivity(50);
     </script>
 </body>
 </html>

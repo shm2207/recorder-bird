@@ -71,14 +71,14 @@
             <!-- 節拍器音量 -->
             <div class="hud-panel flex justify-between items-center gap-3 px-5 py-3 rounded-full w-full">
                 <span class="text-sm font-bold text-gray-700 whitespace-nowrap">🥁 節拍器:</span>
-                <input type="range" min="0" max="1" step="0.1" value="0.5" class="volume-slider w-full" id="start-vol-slider" oninput="updateMetronomeVolume(this.value)">
-                <span id="vol-display-start" class="font-black text-pink-600 w-10 text-right">50%</span>
+                <input type="range" min="0" max="1" step="0.1" value="1" class="volume-slider w-full" id="start-vol-slider" oninput="updateMetronomeVolume(this.value)">
+                <span id="vol-display-start" class="font-black text-pink-600 w-10 text-right">100%</span>
             </div>
             <!-- 麥克風靈敏度 -->
             <div class="hud-panel flex justify-between items-center gap-3 px-5 py-3 rounded-full w-full relative group">
                 <span class="text-sm font-bold text-gray-700 whitespace-nowrap">🎙️ 靈敏度:</span>
-                <input type="range" min="1" max="100" step="1" value="50" class="volume-slider sens-slider w-full" id="start-sens-slider" oninput="updateSensitivity(this.value)">
-                <span id="sens-display-start" class="font-black text-blue-600 w-10 text-right">50%</span>
+                <input type="range" min="1" max="100" step="1" value="30" class="volume-slider sens-slider w-full" id="start-sens-slider" oninput="updateSensitivity(this.value)">
+                <span id="sens-display-start" class="font-black text-blue-600 w-10 text-right">30%</span>
                 <!-- 靈敏度提示說明 -->
                 <div class="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs text-gray-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                     環境吵雜請調低，收音微弱請調高
@@ -126,7 +126,7 @@
                 </div>
                 <div class="hud-panel px-4 py-2 rounded-full flex items-center gap-2 pointer-events-auto shadow-md hover:scale-105 transition-transform">
                     <span class="text-sm font-bold text-gray-600" title="麥克風靈敏度">🎙️</span>
-                    <input type="range" min="1" max="100" step="1" value="50" class="volume-slider sens-slider w-16" id="game-sens-slider" oninput="updateSensitivity(this.value)">
+                    <input type="range" min="1" max="100" step="1" value="30" class="volume-slider sens-slider w-16" id="game-sens-slider" oninput="updateSensitivity(this.value)">
                 </div>
             </div>
 
@@ -161,7 +161,7 @@
         let audioContext, analyser, microphone, currentPitch = 0, isAudioInit = false;
         let difficulty = 1.0;
         let metronomeVolume = 0.5; 
-        let micSensitivity = 0.0255; // 麥克風靈敏度閾值預設值
+        let micSensitivity = 0.0353; // 麥克風靈敏度閾值預設值 (對應 30%)
         
         const BEAT_PIXELS = 450;  
         const MONSTER_X = 220;    
@@ -174,7 +174,7 @@
         };
 
         const SONGS = {
-            mary: { bpm: 65, meter: 4, pickup: 0, notes: [{n:'B5', d:1}, {n:'A5', d:1}, {n:'G5', d:1}, {n:'A5', d:1}, {n:'B5', d:1}, {n:'B5', d:1}, {n:'B5', d:2}, {n:'A5', d:1}, {n:'A5', d:1}, {n:'A5', d:2}, {n:'B5', d:1}, {n:'D6', d:1}, {n:'D6', d:2}, {n:'B5', d:1}, {n:'A5', d:1}, {n:'G5', d:1}, {n:'A5', d:1}, {n:'B5', d:1}, {n:'B5', d:1}, {n:'B5', d:1}, {n:'B5', d:1}, {n:'A5', d:1}, {n:'A5', d:1}, {n:'B5', d:1}, {n:'A5', d:1}, {n:'G5', d:3}] },
+            mary: { bpm: 65, meter: 4, pickup: 0, notes: [{n:'B5', d:1}, {n:'A5', d:1}, {n:'G5', d:1}, {n:'A5', d:1}, {n:'B5', d:1}, {n:'B5', d:1}, {n:'B5', d:2}, {n:'A5', d:1}, {n:'A5', d:1}, {n:'A5', d:2}, {n:'B5', d:1}, {n:'B5', d:1}, {n:'B5', d:2}, {n:'B5', d:1}, {n:'A5', d:1}, {n:'G5', d:1}, {n:'A5', d:1}, {n:'B5', d:1}, {n:'B5', d:1}, {n:'B5', d:1}, {n:'B5', d:1}, {n:'A5', d:1}, {n:'A5', d:1}, {n:'B5', d:1}, {n:'A5', d:1}, {n:'G5', d:3}] },
             ode: { bpm: 85, meter: 4, pickup: 0, notes: [
                     {n:'B5', d:1}, {n:'B5', d:1}, {n:'C6', d:1}, {n:'D6', d:1}, {n:'D6', d:1}, {n:'C6', d:1}, {n:'B5', d:1}, {n:'A5', d:1}, 
                     {n:'G5', d:1}, {n:'G5', d:1}, {n:'A5', d:1}, {n:'B5', d:1}, {n:'B5', d:1.5}, {n:'A5', d:0.5}, {n:'A5', d:2},
@@ -609,7 +609,7 @@
         
         // 頁面初始化
         resize();
-        updateSensitivity(50); // 預設 50% 靈敏度
+        updateSensitivity(30); // 預設 30% 靈敏度
     </script>
 </body>
 </html>
